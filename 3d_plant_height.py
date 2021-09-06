@@ -48,6 +48,8 @@ def process_pointcloud(pcd_path):
     height_list = []
     plant_name_list = []
     dir_name_list = []
+    vol_list = []
+
     df = pd.DataFrame()
 
     plant_name = os.path.splitext(os.path.basename(pcd_path))[0]
@@ -59,12 +61,16 @@ def process_pointcloud(pcd_path):
     dir_name_list.append(dir_name)
 
     pcd = o3d.io.read_point_cloud(pcd_path)
+    box = o3d.geometry.AxisAlignedBoundingBox.create_from_points(pcd.points)
+    vol = box.volume()
+    vol_list.append(vol)
+
     height_list.append(abs(float(pcd.get_max_bound()[2]) - float(pcd.get_min_bound()[2])))
 
     df['height_meters'] = height_list
+    df['volume_meters_3'] = vol_list
     df['plant_name'] = plant_name_list
     df['origin_directory'] = dir_name_list
-    
     return df
 
 
