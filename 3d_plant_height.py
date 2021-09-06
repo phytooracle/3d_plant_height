@@ -23,6 +23,7 @@ def get_args():
 
     parser.add_argument('dir',
                         metavar='dir',
+                        type=str,
                         help='Directory containing individual plant pointclouds')
 
     parser.add_argument('-od',
@@ -46,16 +47,23 @@ def get_args():
 def process_pointcloud(pcd_path):
     height_list = []
     plant_name_list = []
+    dir_name_list = []
     df = pd.DataFrame()
 
     plant_name = os.path.splitext(os.path.basename(pcd_path))[0]
+    plant_name = '_'.join(plant_name.split('_')[:-1])
     plant_name_list.append(plant_name)
+    print(f'Processing {plant_name}.')
+
+    dir_name = os.path.split(os.path.dirname(pcd_path))[-1]
+    dir_name_list.append(dir_name)
 
     pcd = o3d.io.read_point_cloud(pcd_path)
     height_list.append(abs(float(pcd.get_max_bound()[2]) - float(pcd.get_min_bound()[2])))
 
     df['height_meters'] = height_list
     df['plant_name'] = plant_name_list
+    df['origin_directory'] = dir_name_list
     
     return df
 
@@ -72,7 +80,7 @@ def main():
     major_df = pd.DataFrame()
 
     with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
-        df = p.map(process_pointcloud, glob.glob(os.path.join(args.dir, '*.ply')))
+        df = p.map(process_pointcloud, glob.glob(os.path.join(args.dir)))
         major_df = major_df.append(df)
 
     major_df.to_csv(os.path.join(args.outdir, f'{args.outfile}.csv'), index=False)
