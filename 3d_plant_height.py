@@ -64,39 +64,44 @@ def get_paths(directory):
 
 # --------------------------------------------------
 def process_pointcloud(pcd_path):
-    height_list = []
-    plant_name_list = []
-    dir_name_list = []
-    axis_vol_list = []
-    oriented_vol_list = []
+    try:
+        
+        height_list = []
+        plant_name_list = []
+        dir_name_list = []
+        axis_vol_list = []
+        oriented_vol_list = []
 
-    df = pd.DataFrame()
+        df = pd.DataFrame()
 
-    plant_name = os.path.splitext(os.path.basename(pcd_path))[0]
-    plant_name = '_'.join(plant_name.split('_')[:-1])
-    plant_name_list.append(plant_name)
-    print(f'Processing {plant_name}.')
+        plant_name = os.path.splitext(os.path.basename(pcd_path))[0]
+        plant_name = '_'.join(plant_name.split('_')[:-1])
+        plant_name_list.append(plant_name)
+        print(f'Processing {plant_name}.')
 
-    dir_name = os.path.split(os.path.dirname(pcd_path))[-1]
-    dir_name_list.append(dir_name)
+        dir_name = os.path.split(os.path.dirname(pcd_path))[-1]
+        dir_name_list.append(dir_name)
 
-    pcd = o3d.io.read_point_cloud(pcd_path)
-    axis_aligned_box = o3d.geometry.AxisAlignedBoundingBox.create_from_points(pcd.points)
-    oriented_box = o3d.geometry.OrientedBoundingBox.create_from_points(pcd.points)
+        pcd = o3d.io.read_point_cloud(pcd_path)
+        axis_aligned_box = o3d.geometry.AxisAlignedBoundingBox.create_from_points(pcd.points)
+        oriented_box = o3d.geometry.OrientedBoundingBox.create_from_points(pcd.points)
 
-    axis_vol = axis_aligned_box.volume()
-    axis_vol_list.append(axis_vol)
+        axis_vol = axis_aligned_box.volume()
+        axis_vol_list.append(axis_vol)
 
-    oriented_vol = oriented_box.volume()
-    oriented_vol_list.append(oriented_vol)
+        oriented_vol = oriented_box.volume()
+        oriented_vol_list.append(oriented_vol)
 
-    height_list.append(abs(float(pcd.get_max_bound()[2]) - float(pcd.get_min_bound()[2])))
+        height_list.append(abs(float(pcd.get_max_bound()[2]) - float(pcd.get_min_bound()[2])))
 
-    df['height_meters'] = height_list
-    df['axis_aligned_volume'] = axis_vol_list
-    df['oriented_volume'] = oriented_vol_list
-    df['plant_name'] = plant_name_list
-    df['origin_directory'] = dir_name_list
+        df['height_meters'] = height_list
+        df['axis_aligned_volume'] = axis_vol_list
+        df['oriented_volume'] = oriented_vol_list
+        df['plant_name'] = plant_name_list
+        df['origin_directory'] = dir_name_list
+
+    except:
+        pass
     
     return df
 
