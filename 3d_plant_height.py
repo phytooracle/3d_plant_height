@@ -44,11 +44,31 @@ def get_args():
 
 
 # --------------------------------------------------
+def get_paths(directory):
+    pcd_list = []
+
+    for root, dirs, files in os.walk(directory):
+        for name in files:
+            if '.ply' in name:
+                pcd_list.append(os.path.join(root, name))
+
+    if not pcd_list:
+
+        raise Exception(f'ERROR: No compatible images found in {directory}.')
+
+
+    print(f'Point clouds to process: {len(pcd_list)}')
+
+    return pcd_list
+
+
+# --------------------------------------------------
 def process_pointcloud(pcd_path):
     height_list = []
     plant_name_list = []
     dir_name_list = []
-    vol_list = []
+    axis_vol_list = []
+    oriented_vol_list = []
 
     df = pd.DataFrame()
 
@@ -61,16 +81,23 @@ def process_pointcloud(pcd_path):
     dir_name_list.append(dir_name)
 
     pcd = o3d.io.read_point_cloud(pcd_path)
-    box = o3d.geometry.AxisAlignedBoundingBox.create_from_points(pcd.points)
-    vol = box.volume()
-    vol_list.append(vol)
+    axis_aligned_box = o3d.geometry.AxisAlignedBoundingBox.create_from_points(pcd.points)
+    oriented_box = o3d.geometry.OrientedBoundingBox.create_from_points(pcd.points)
+
+    axis_vol = axis_aligned_box.volume()
+    axis_vol_list.append(axis_vol)
+
+    oriented_vol = oriented_box.volume()
+    oriented_vol_list.append(oriented_vol)
 
     height_list.append(abs(float(pcd.get_max_bound()[2]) - float(pcd.get_min_bound()[2])))
 
     df['height_meters'] = height_list
-    df['volume_meters_3'] = vol_list
+    df['axis_aligned_volume'] = axis_vol_list
+    df['oriented_volume'] = oriented_vol_list
     df['plant_name'] = plant_name_list
     df['origin_directory'] = dir_name_list
+    
     return df
 
 
@@ -84,9 +111,10 @@ def main():
         os.makedirs(args.outdir)
     
     major_df = pd.DataFrame()
+    paths = get_paths(args.dir)
 
     with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
-        df = p.map(process_pointcloud, glob.glob(os.path.join(args.dir)))
+        df = p.map(process_pointcloud, paths)
         major_df = major_df.append(df)
 
     major_df.to_csv(os.path.join(args.outdir, f'{args.outfile}.csv'), index=False)
